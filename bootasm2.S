@@ -38,12 +38,36 @@ cons_write_crlf:
     int     $0x10
     ret
 
+cons_write_int:
+    mov %bx, %ax
+    movw $hex_num + 5, %si
+cons_write_int_repeat:
+    dec %si
+    call div_by_ten # gets remainder
+    add $48, %dl
+    mov %dl, (%si)
+    cmp $0, %ax
+    jnz cons_write_int_repeat # continue finding the value
+    call cons_writeline
+    ret
+
+div_by_ten:
+    xor %dx, %dx
+    movw $10, %cx
+    div %cx # remainder in dx
+    ret
+
+cons_write_int_done:
+    ret
+
 cons_writeline:
     call    cons_write
     call    cons_write_crlf
     ret    
 
 real_start:
+    movw    $546, %bx
+    call    cons_write_int
     movb    %dl, (boot_device) # Boot device number is passed in DL from BIOS. Save it hear since DL might get trashed
 
     movw    $boot_message, %si  # Display our boot message
@@ -58,6 +82,8 @@ real_start:
 
     movw    $fd, %si
     jmp     finish
+
+    
 
 harddrive:
     movw    $hd, %si
@@ -79,4 +105,5 @@ booted_from_msg:
     .string "Booting from "
 fd: .string "floppy disk"
 hd: .string "hard drive"
-
+hex_num:
+    .string "FFFFF"
